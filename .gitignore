@@ -1,0 +1,4 @@
+.connected-app-credentials.json
+.mcp.json
+.env
+*.env
