@@ -215,11 +215,18 @@ For each row, write one of three values to the `Pass/Fail (<date>)` column:
 - **Fail** — the agent's response is clearly incorrect, missing, or contradicts the expected answer
 - **Review** — the response is ambiguous, partially correct, or Claude cannot confidently judge it
 
-### Step 9 — Handle gaps and retries
+### Step 9 — Automatic second pass
 
-After the first pass, check for any rows that still have empty responses:
-- Retry them in a new session
-- If still empty after retry, write `(no response)` so no cell is left blank
+Immediately after the first pass completes, run a second pass **without asking the user**. Collect every row where the response is:
+- Blank or empty, OR
+- Matches a sorry/deflect pattern: starts with or contains `"I'm sorry"`, `"I'm unable"`, `"I cannot"`, `"I apologize"`, or is `"(no response)"`
+
+Re-ask each of those questions in a **fresh individual session** (one new session per question — do not reuse a session across retries, to avoid context carryover). Write whatever the agent returns — even if it's another sorry — as the final answer. Save after each retry.
+
+After the second pass, report:
+- How many rows were retried
+- How many changed to a substantive response
+- How many remained sorry/blank (flag these for human review)
 
 ### Step 10 — Save and report
 
