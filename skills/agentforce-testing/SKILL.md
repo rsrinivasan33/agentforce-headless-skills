@@ -193,10 +193,11 @@ def send_message(token, session_id, text, seq):
 
 ### Step 7 — Run questions in batches
 
-- Collect all non-empty rows from the question column (skip header rows and blank cells)
+- Collect all non-empty rows from the question column (skip header rows and blank cells) — do NOT filter by any environment label column unless the user explicitly asks
 - Use **batches of 25 questions per session** to avoid session context buildup
 - Refresh the OAuth token every 30 questions
 - Wait 0.5s between messages to avoid rate limiting
+- **Save the workbook after every question** — not per batch — so partial progress is never lost if the run is interrupted
 - On empty response, retry once with a fresh session before writing `(no response)`
 
 ```python
