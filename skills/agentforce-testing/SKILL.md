@@ -166,6 +166,27 @@ req = urllib.request.Request(f"{api_host}/einstein/ai-agent/v1/agents/{agent_id}
                               data=body, headers=headers)
 with urllib.request.urlopen(req) as r:
     session_id = json.loads(r.read())["sessionId"]
+
+# Send a message — note: the `message` field in the response is a plain string, not a dict
+def send_message(token, session_id, text, seq):
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    body = json.dumps({
+        "message": {"sequenceId": seq, "type": "Text", "text": text}
+    }).encode()
+    req = urllib.request.Request(
+        f"{api_host}/einstein/ai-agent/v1/sessions/{session_id}/messages",
+        data=body, headers=headers
+    )
+    with urllib.request.urlopen(req) as r:
+        resp = json.loads(r.read())
+    for m in resp.get("messages", []):
+        if isinstance(m, dict):
+            msg = m.get("message", "")
+            if isinstance(msg, str) and msg:
+                return msg
+            elif isinstance(msg, dict) and msg.get("text"):
+                return msg["text"]
+    return ""
 ```
 
 **Always construct message URLs manually** — never use `_links.messages.href` from the session response; it may point to the wrong host for Gov Cloud orgs.
@@ -243,6 +264,7 @@ Rules:
 - Always write the agent's raw response — never summarize or edit it
 - Use `openpyxl` for `.xlsx` files; use `csv` module for `.csv` files
 - Use Python `urllib` for all API calls to avoid shell truncation of long JWT tokens
+- When ending a session (DELETE), always include `x-session-end-reason: UserRequest` header — omitting it returns a 400 error
 
 ---
 
@@ -256,5 +278,6 @@ Rules:
 | `404` on message send | Do not use `_links` href — construct URL manually with correct host |
 | Empty response string | Retry with a fresh single-question session |
 | `chatbot_api` missing from scope | Wrong Connected App — use Agentforce app, not Data Cloud app |
+| `400` on session DELETE | Add `x-session-end-reason: UserRequest` header to the DELETE request |
 | `type: Human not found` | Use `"type": "Text"` |
 | Agent not found in BotDefinition | Try partial name match or list all: `SELECT Id, MasterLabel FROM BotDefinition` |
